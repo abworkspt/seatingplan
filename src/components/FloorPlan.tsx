@@ -21,7 +21,14 @@ export default function FloorPlan({ tables, guests, onAddTable, onRemoveTable, o
         <button className="add-table-btn" onClick={onAddTable}>+ Mesa</button>
       </div>
       <div className="tables-grid">
-        {[...tables].reverse().map(table => (
+        {[...tables]
+          .sort((a, b) => {
+            const numA = parseInt(a.label.replace(/\D/g, '')) || 0;
+            const numB = parseInt(b.label.replace(/\D/g, '')) || 0;
+            return numA - numB;
+          })
+          .reverse()
+          .map(table => (
           <TableCard
             key={table.id}
             table={table}
