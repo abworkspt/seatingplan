@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { useDroppable } from '@dnd-kit/core';
+import { useDroppable, useDraggable } from '@dnd-kit/core';
+import { CSS } from '@dnd-kit/utilities';
 import type { Table } from '../store';
 import type { Guest } from '../data/guests';
 
@@ -20,6 +21,31 @@ interface SeatProps {
   onSeatTap?: (tableId: string, seatIndex: number) => void;
 }
 
+function DraggableGuest({ guest, onUnassign }: { guest: Guest; onUnassign: (id: string) => void }) {
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+    id: guest.id,
+    data: { guest },
+  });
+  const style: React.CSSProperties = {
+    transform: CSS.Translate.toString(transform),
+    opacity: isDragging ? 0.4 : 1,
+    cursor: 'grab',
+    display: 'contents',
+  };
+  return (
+    <span ref={setNodeRef} style={style} {...listeners} {...attributes} className="seat-draggable">
+      <span className="seat-type-badge">{guest.type === 'adult' ? 'A' : guest.type === 'child' ? 'C' : 'B'}</span>
+      <span className="seat-rect-name">{guest.name}</span>
+      <button
+        className="seat-rect-remove"
+        onPointerDown={e => e.stopPropagation()}
+        onClick={e => { e.stopPropagation(); onUnassign(guest.id); }}
+        title="Remover"
+      >×</button>
+    </span>
+  );
+}
+
 function Seat({ tableId, seatIndex, guest, onUnassign, onSeatTap }: SeatProps) {
   const { isOver, setNodeRef } = useDroppable({ id: `${tableId}::${seatIndex}` });
 
@@ -27,20 +53,12 @@ function Seat({ tableId, seatIndex, guest, onUnassign, onSeatTap }: SeatProps) {
     <div
       ref={setNodeRef}
       className={`seat-rect ${isOver ? 'over' : ''} ${guest ? 'occupied' : 'empty'}`}
-      onClick={() => onSeatTap?.(tableId, seatIndex)}
+      onClick={() => !guest && onSeatTap?.(tableId, seatIndex)}
     >
       {guest ? (
-        <>
-          <span className="seat-type-badge">{guest.type === 'adult' ? 'A' : guest.type === 'child' ? 'C' : 'B'}</span>
-          <span className="seat-rect-name">{guest.name}</span>
-          <button
-            className="seat-rect-remove"
-            onClick={() => onUnassign(guest.id)}
-            title="Remover"
-          >×</button>
-        </>
+        <DraggableGuest guest={guest} onUnassign={onUnassign} />
       ) : (
-        <span className="seat-rect-empty">{seatIndex + 1}</span>
+        <span className="seat-rect-empty" onClick={() => onSeatTap?.(tableId, seatIndex)}>{seatIndex + 1}</span>
       )}
     </div>
   );
