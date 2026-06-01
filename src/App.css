@@ -424,10 +424,10 @@ body {
 
 .tables-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-rows: repeat(8, auto);
+  grid-auto-flow: column;
   gap: 16px 28px;
   overflow-y: auto;
-  align-content: start;
   padding-bottom: 12px;
 }
 
@@ -639,7 +639,11 @@ body {
   .desktop-only { display: none !important; }
   .mobile-only { display: flex; }
 
-  .tables-grid { grid-template-columns: 1fr !important; }
+  .tables-grid {
+    grid-template-rows: none !important;
+    grid-auto-flow: row !important;
+    grid-template-columns: 1fr !important;
+  }
 
   .seat-rect { height: 40px; cursor: pointer; }
 
