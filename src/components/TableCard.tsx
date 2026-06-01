@@ -29,11 +29,9 @@ function DraggableGuest({ guest, onUnassign }: { guest: Guest; onUnassign: (id: 
   const style: React.CSSProperties = {
     transform: CSS.Translate.toString(transform),
     opacity: isDragging ? 0.4 : 1,
-    cursor: 'grab',
-    display: 'contents',
   };
   return (
-    <span ref={setNodeRef} style={style} {...listeners} {...attributes} className="seat-draggable">
+    <div ref={setNodeRef} style={style} {...listeners} {...attributes} className="seat-draggable">
       <span className="seat-type-badge">{guest.type === 'adult' ? 'A' : guest.type === 'child' ? 'C' : 'B'}</span>
       <span className="seat-rect-name">{guest.name}</span>
       <button
@@ -42,7 +40,7 @@ function DraggableGuest({ guest, onUnassign }: { guest: Guest; onUnassign: (id: 
         onClick={e => { e.stopPropagation(); onUnassign(guest.id); }}
         title="Remover"
       >×</button>
-    </span>
+    </div>
   );
 }
 

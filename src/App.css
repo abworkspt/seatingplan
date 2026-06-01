@@ -468,6 +468,11 @@ body {
   border-color: #c8bfb4;
   background: #ede8e2;
   box-shadow: var(--shadow-sm);
+  padding: 0;
+}
+.seat-rect.occupied .seat-draggable {
+  padding: 0 6px 0 10px;
+  height: 100%;
 }
 .seat-rect.over {
   border-color: var(--text);
@@ -476,9 +481,11 @@ body {
 .seat-draggable {
   display: flex;
   align-items: center;
-  width: 100%;
+  flex: 1;
+  min-width: 0;
   gap: 4px;
   cursor: grab;
+  touch-action: none;
 }
 .seat-rect-name {
   font-size: 11.5px;
