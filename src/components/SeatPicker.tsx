@@ -45,7 +45,6 @@ export default function SeatPicker({ table, seatIndex, guests, assignedIds, curr
           placeholder="Pesquisar convidado..."
           value={search}
           onChange={e => setSearch(e.target.value)}
-          autoFocus
         />
 
         <div className="picker-list">
