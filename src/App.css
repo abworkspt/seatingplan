@@ -29,6 +29,7 @@ body {
   font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
   font-size: 13px;
   height: 100vh;
+  height: 100dvh;
   overflow: hidden;
 }
 
@@ -36,6 +37,7 @@ body {
   display: flex;
   flex-direction: column;
   height: 100vh;
+  height: 100dvh;
 }
 
 /* HEADER */
