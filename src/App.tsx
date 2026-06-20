@@ -132,7 +132,6 @@ export default function App() {
     onAddTables: (count: number, shape: 'rectangular' | 'circular', seatCount: number) =>
       dispatch({ type: 'ADD_TABLES', count, shape, seatCount }),
     onRemoveTable: (id: string) => dispatch({ type: 'REMOVE_TABLE', tableId: id }),
-    onRenameTable: (id: string, label: string) => dispatch({ type: 'RENAME_TABLE', tableId: id, label }),
     onUnassign: (guestId: string) => dispatch({ type: 'UNASSIGN_GUEST', guestId }),
     onMoveTable: (id: string, x: number, y: number) => dispatch({ type: 'MOVE_TABLE', tableId: id, x, y }),
     onEditTable: (id: string, label: string, shape: 'rectangular' | 'circular', seatCount: number) =>

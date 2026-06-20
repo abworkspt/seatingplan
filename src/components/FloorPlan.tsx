@@ -10,7 +10,6 @@ interface Props {
   canvas?: boolean; // desktop canvas mode
   onAddTables: (count: number, shape: 'rectangular' | 'circular', seatCount: number) => void;
   onRemoveTable: (id: string) => void;
-  onRenameTable: (id: string, label: string) => void;
   onUnassign: (guestId: string) => void;
   onMoveTable: (id: string, x: number, y: number) => void;
   onEditTable: (id: string, label: string, shape: 'rectangular' | 'circular', seatCount: number) => void;
@@ -19,7 +18,7 @@ interface Props {
 
 export default function FloorPlan({
   tables, guests, canvas,
-  onAddTables, onRemoveTable, onRenameTable, onUnassign,
+  onAddTables, onRemoveTable, onUnassign,
   onMoveTable, onEditTable, onSeatTap,
 }: Props) {
   const [showAddModal, setShowAddModal] = useState(false);
@@ -100,7 +99,6 @@ export default function FloorPlan({
               table={table}
               guests={guests}
               onRemove={onRemoveTable}
-              onRename={onRenameTable}
               onUnassign={onUnassign}
               onEditTable={(label, shape, seatCount) => onEditTable(table.id, label, shape, seatCount)}
               onSeatTap={onSeatTap}
@@ -135,8 +133,7 @@ export default function FloorPlan({
                 table={table}
                 guests={guests}
                 onRemove={onRemoveTable}
-                onRename={onRenameTable}
-                onUnassign={onUnassign}
+                  onUnassign={onUnassign}
                 onEditTable={(label, shape, seatCount) => onEditTable(table.id, label, shape, seatCount)}
                 onDragHandlePointerDown={e => handleTableDragStart(e, table)}
               />

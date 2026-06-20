@@ -9,7 +9,6 @@ interface Props {
   table: Table;
   guests: Guest[];
   onRemove: (tableId: string) => void;
-  onRename: (tableId: string, label: string) => void;
   onUnassign: (guestId: string) => void;
   onEditTable?: (label: string, shape: 'rectangular' | 'circular', seatCount: number) => void;
   onDragHandlePointerDown?: (e: React.PointerEvent) => void;
@@ -84,22 +83,13 @@ function CircSeat({ tableId, seatIndex, guest, left, top, width, height, onUnass
   );
 }
 
-// ── Table name editor (shared) ──
-function TableLabel({ table, onRename, onRemove }: {
+// ── Table header (name + count + remove). Renaming is done via the edit modal. ──
+function TableLabel({ table, onRemove }: {
   table: Table;
-  onRename: (id: string, label: string) => void;
   onRemove: (id: string) => void;
 }) {
-  const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState(table.label);
   const occupants = table.seats.filter(Boolean).length;
   const total = table.seats.length;
-
-  const commit = () => {
-    if (draft.trim()) onRename(table.id, draft.trim());
-    else setDraft(table.label);
-    setEditing(false);
-  };
 
   const handleRemove = () => {
     if (occupants > 0 && !confirm(`A ${table.label} tem ${occupants} pessoa(s). Remover?`)) return;
@@ -109,28 +99,14 @@ function TableLabel({ table, onRename, onRemove }: {
   return (
     <>
       <button className="table-remove-btn" onClick={handleRemove} onPointerDown={e => e.stopPropagation()} title="Remover mesa">×</button>
-      {editing ? (
-        <input
-          className="table-name-input"
-          value={draft}
-          onChange={e => setDraft(e.target.value)}
-          onBlur={commit}
-          onKeyDown={e => { if (e.key === 'Enter') commit(); if (e.key === 'Escape') { setDraft(table.label); setEditing(false); } }}
-          autoFocus
-          onPointerDown={e => e.stopPropagation()}
-        />
-      ) : (
-        <span className="table-label" onClick={() => setEditing(true)} onPointerDown={e => e.stopPropagation()} title="Clique para renomear">
-          {table.label}
-        </span>
-      )}
+      <span className="table-label">{table.label}</span>
       <span className="table-count">{occupants}/{total}</span>
     </>
   );
 }
 
 // ── Main TableCard ──
-export default function TableCard({ table, guests, onRemove, onRename, onUnassign, onEditTable, onDragHandlePointerDown, onSeatTap }: Props) {
+export default function TableCard({ table, guests, onRemove, onUnassign, onEditTable, onDragHandlePointerDown, onSeatTap }: Props) {
   const [editOpen, setEditOpen] = useState(false);
   const guestMap = Object.fromEntries(guests.map(g => [g.id, g]));
   const isCanvas = !!onDragHandlePointerDown;
@@ -201,7 +177,7 @@ export default function TableCard({ table, guests, onRemove, onRename, onUnassig
           }}
           onPointerDown={isCanvas ? onDragHandlePointerDown : undefined}
         >
-          <TableLabel table={table} onRename={onRename} onRemove={onRemove} />
+          <TableLabel table={table} onRemove={onRemove} />
           {editButton}
         </div>
       </div>
@@ -234,7 +210,7 @@ export default function TableCard({ table, guests, onRemove, onRename, onUnassig
         onPointerDown={isCanvas ? onDragHandlePointerDown : undefined}
         style={{ cursor: isCanvas ? 'grab' : 'default' }}
       >
-        <TableLabel table={table} onRename={onRename} onRemove={onRemove} />
+        <TableLabel table={table} onRemove={onRemove} />
         {editButton}
       </div>
 
