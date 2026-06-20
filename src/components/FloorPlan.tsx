@@ -2,12 +2,13 @@ import { useRef, useState, useEffect } from 'react';
 import type { Table } from '../store';
 import type { Guest } from '../data/guests';
 import TableCard from './TableCard';
+import AddTablesModal from './AddTablesModal';
 
 interface Props {
   tables: Table[];
   guests: Guest[];
   canvas?: boolean; // desktop canvas mode
-  onAddTable: () => void;
+  onAddTables: (count: number, shape: 'rectangular' | 'circular', seatCount: number) => void;
   onRemoveTable: (id: string) => void;
   onRenameTable: (id: string, label: string) => void;
   onUnassign: (guestId: string) => void;
@@ -18,9 +19,10 @@ interface Props {
 
 export default function FloorPlan({
   tables, guests, canvas,
-  onAddTable, onRemoveTable, onRenameTable, onUnassign,
+  onAddTables, onRemoveTable, onRenameTable, onUnassign,
   onMoveTable, onSetTableShape, onSeatTap,
 }: Props) {
+  const [showAddModal, setShowAddModal] = useState(false);
   const dragRef = useRef<{
     tableId: string;
     startX: number; startY: number;
@@ -74,14 +76,22 @@ export default function FloorPlan({
     return na - nb;
   });
 
+  const modal = showAddModal && (
+    <AddTablesModal
+      onConfirm={onAddTables}
+      onClose={() => setShowAddModal(false)}
+    />
+  );
+
   // ── MOBILE: simple vertical list ──
   if (!canvas) {
     return (
       <main className="floor-plan">
+        {modal}
         <h1 className="print-title">Casamento — Seating Plan</h1>
         <div className="floor-plan-header">
           <h2>Sala</h2>
-          <button className="add-table-btn" onClick={onAddTable}>+ Mesa</button>
+          <button className="add-table-btn" onClick={() => setShowAddModal(true)}>+ Mesa</button>
         </div>
         <div className="tables-grid">
           {[...sortedTables].reverse().map(table => (
@@ -103,10 +113,11 @@ export default function FloorPlan({
   // ── DESKTOP: free canvas ──
   return (
     <main className="floor-plan canvas-mode">
+      {modal}
       <h1 className="print-title">Casamento — Seating Plan</h1>
       <div className="floor-plan-header">
         <h2>Sala</h2>
-        <button className="add-table-btn" onClick={onAddTable}>+ Mesa</button>
+        <button className="add-table-btn" onClick={() => setShowAddModal(true)}>+ Mesa</button>
       </div>
       <div className="floor-plan-canvas">
         {tables.map(table => {

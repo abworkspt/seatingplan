@@ -1,5 +1,14 @@
 import { INITIAL_GUESTS, type Guest } from './data/guests';
 
+let idCounter = 0;
+function newId(): string {
+  try {
+    if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) return crypto.randomUUID();
+  } catch { /* ignore */ }
+  idCounter += 1;
+  return `${Date.now()}-${idCounter}-${Math.floor(Math.random() * 1e6)}`;
+}
+
 export interface Table {
   id: string;
   label: string;
@@ -23,7 +32,7 @@ type Action =
   | { type: 'ADD_GUEST'; name: string; guestType: 'adult' | 'child' | 'baby'; mainGuestId?: string }
   | { type: 'DELETE_GUEST'; guestId: string }
   | { type: 'RENAME_GUEST'; guestId: string; name: string }
-  | { type: 'ADD_TABLE' }
+  | { type: 'ADD_TABLES'; count: number; shape: 'rectangular' | 'circular'; seatCount: number }
   | { type: 'REMOVE_TABLE'; tableId: string }
   | { type: 'RENAME_TABLE'; tableId: string; label: string }
   | { type: 'MOVE_TABLE'; tableId: string; x: number; y: number }
@@ -160,12 +169,19 @@ export function reducer(state: AppState, action: Action): AppState {
     }
 
     case 'SET_COMPANION': {
+      // Making a guest a companion also removes them from any seat they occupy,
+      // so the list and the floor plan never disagree.
+      const tables = state.tables.map(t => ({
+        ...t,
+        seats: t.seats.map(s => (s === action.guestId ? null : s)),
+      }));
       const guests = state.guests.map(g => {
-        if (g.id === action.guestId) return { ...g, isMain: false, mainGuestId: action.mainGuestId };
+        if (g.id === action.guestId)
+          return { ...g, isMain: false, mainGuestId: action.mainGuestId, tableId: undefined, seatIndex: undefined };
         if (g.mainGuestId === action.guestId) return { ...g, isMain: true, mainGuestId: undefined };
         return g;
       });
-      return { ...state, guests };
+      return { ...state, guests, tables };
     }
 
     case 'REMOVE_COMPANION': {
@@ -206,17 +222,26 @@ export function reducer(state: AppState, action: Action): AppState {
       return { ...state, guests, tables };
     }
 
-    case 'ADD_TABLE': {
-      const num = state.tables.length + 1;
-      const table: Table = {
-        id: `table-${Date.now()}`,
-        label: `Mesa ${num}`,
-        seats: Array(8).fill(null),
-        shape: 'rectangular',
-        x: 220,
-        y: 220,
-      };
-      return { ...state, tables: [...state.tables, table] };
+    case 'ADD_TABLES': {
+      const count = Math.max(1, Math.min(50, action.count));
+      const seatCount = Math.max(1, Math.min(20, action.seatCount));
+      const existingNums = state.tables.map(t => parseInt(t.label.replace(/\D/g, '')) || 0);
+      let maxNum = existingNums.length ? Math.max(...existingNums) : 0;
+      const newTables: Table[] = [];
+      for (let i = 0; i < count; i++) {
+        maxNum++;
+        const x = 240 + (i % 8) * 26;
+        const y = 40 + (i % 8) * 26 + Math.floor(i / 8) * 240;
+        newTables.push({
+          id: `table-${newId()}`,
+          label: `Mesa ${maxNum}`,
+          seats: Array(seatCount).fill(null),
+          shape: action.shape,
+          x,
+          y,
+        });
+      }
+      return { ...state, tables: [...state.tables, ...newTables] };
     }
 
     case 'REMOVE_TABLE': {

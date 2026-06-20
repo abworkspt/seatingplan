@@ -61,40 +61,24 @@ function RectSeat({ tableId, seatIndex, guest, onUnassign, onSeatTap }: {
   );
 }
 
-// ── Circular seat ──
-const CIRC_CENTER = 130;
-const CIRC_RADIUS = 88;
-const CIRC_SEAT_W = 72;
-const CIRC_SEAT_H = 26;
-const CIRC_ANGLES = [270, 315, 0, 45, 90, 135, 180, 225]; // clockwise from top
-
-function CircSeat({ tableId, seatIndex, guest, onUnassign, onSeatTap }: {
+// ── Circular seat (position computed by parent) ──
+function CircSeat({ tableId, seatIndex, guest, left, top, width, height, onUnassign, onSeatTap }: {
   tableId: string; seatIndex: number; guest: Guest | null;
+  left: number; top: number; width: number; height: number;
   onUnassign: (id: string) => void; onSeatTap?: (tableId: string, seatIndex: number) => void;
 }) {
   const { isOver, setNodeRef } = useDroppable({ id: `${tableId}::${seatIndex}` });
-  const angle = CIRC_ANGLES[seatIndex] ?? 0;
-  const rad = (angle * Math.PI) / 180;
-  const cx = CIRC_CENTER + CIRC_RADIUS * Math.cos(rad);
-  const cy = CIRC_CENTER + CIRC_RADIUS * Math.sin(rad);
-
   return (
     <div
       ref={setNodeRef}
       className={`circ-seat ${isOver ? 'over' : ''} ${guest ? 'occupied' : 'empty'}`}
-      style={{
-        left: cx - CIRC_SEAT_W / 2,
-        top: cy - CIRC_SEAT_H / 2,
-        width: CIRC_SEAT_W,
-        height: CIRC_SEAT_H,
-      }}
+      style={{ left, top, width, height }}
       onClick={() => !guest && onSeatTap?.(tableId, seatIndex)}
     >
-      {guest ? (
-        <DraggableGuest guest={guest} onUnassign={onUnassign} />
-      ) : (
-        <span className="circ-seat-empty" onClick={() => onSeatTap?.(tableId, seatIndex)}>{seatIndex + 1}</span>
-      )}
+      {guest
+        ? <DraggableGuest guest={guest} onUnassign={onUnassign} />
+        : <span className="circ-seat-empty" onClick={() => onSeatTap?.(tableId, seatIndex)}>{seatIndex + 1}</span>
+      }
     </div>
   );
 }
@@ -108,6 +92,7 @@ function TableLabel({ table, onRename, onRemove }: {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(table.label);
   const occupants = table.seats.filter(Boolean).length;
+  const total = table.seats.length;
 
   const commit = () => {
     if (draft.trim()) onRename(table.id, draft.trim());
@@ -122,7 +107,7 @@ function TableLabel({ table, onRename, onRemove }: {
 
   return (
     <>
-      <button className="table-remove-btn" onClick={handleRemove} title="Remover mesa">×</button>
+      <button className="table-remove-btn" onClick={handleRemove} onPointerDown={e => e.stopPropagation()} title="Remover mesa">×</button>
       {editing ? (
         <input
           className="table-name-input"
@@ -134,11 +119,11 @@ function TableLabel({ table, onRename, onRemove }: {
           onPointerDown={e => e.stopPropagation()}
         />
       ) : (
-        <span className="table-label" onClick={() => setEditing(true)} title="Clique para renomear">
+        <span className="table-label" onClick={() => setEditing(true)} onPointerDown={e => e.stopPropagation()} title="Clique para renomear">
           {table.label}
         </span>
       )}
-      <span className="table-count">{occupants}/8</span>
+      <span className="table-count">{occupants}/{total}</span>
     </>
   );
 }
@@ -147,41 +132,68 @@ function TableLabel({ table, onRename, onRemove }: {
 export default function TableCard({ table, guests, onRemove, onRename, onUnassign, onSetShape, onDragHandlePointerDown, onSeatTap }: Props) {
   const guestMap = Object.fromEntries(guests.map(g => [g.id, g]));
   const isCanvas = !!onDragHandlePointerDown;
+  const n = table.seats.length;
 
   // ── CIRCULAR ──
   if (table.shape === 'circular') {
+    const seatW = 70;
+    const seatH = 26;
+    const bodyD = 84;
+    const minSpacing = 80; // min distance between adjacent seat centers along the ring
+    // Ring must clear the central body; for few seats this floor (not a fixed 80)
+    // keeps the card from being huge and mostly empty.
+    const minRing = bodyD / 2 + 8 + seatH / 2;
+    const radius = Math.max(minRing, (minSpacing * n) / (2 * Math.PI));
+    const pad = 8;
+    const cardSize = 2 * (radius + seatW / 2) + pad * 2;
+    const center = cardSize / 2;
+
     return (
-      <div className="circular-table-card">
-        {/* Shape toggle */}
-        {onSetShape && (
-          <button className="shape-toggle-btn" onClick={() => onSetShape('rectangular')} title="Mudar para rectangular">⬜</button>
-        )}
-        {/* Seats */}
-        {Array.from({ length: 8 }, (_, i) => (
-          <CircSeat
-            key={i}
-            tableId={table.id}
-            seatIndex={i}
-            guest={table.seats[i] ? guestMap[table.seats[i]!] ?? null : null}
-            onUnassign={onUnassign}
-            onSeatTap={onSeatTap}
-          />
-        ))}
-        {/* Circle body (drag handle on canvas) */}
+      <div className="circular-table-card" style={{ width: cardSize, height: cardSize }}>
+        {Array.from({ length: n }, (_, i) => {
+          const angleDeg = -90 + i * (360 / n); // first seat at top, clockwise
+          const rad = (angleDeg * Math.PI) / 180;
+          const cx = center + radius * Math.cos(rad);
+          const cy = center + radius * Math.sin(rad);
+          return (
+            <CircSeat
+              key={i}
+              tableId={table.id}
+              seatIndex={i}
+              guest={table.seats[i] ? guestMap[table.seats[i]!] ?? null : null}
+              left={cx - seatW / 2}
+              top={cy - seatH / 2}
+              width={seatW}
+              height={seatH}
+              onUnassign={onUnassign}
+              onSeatTap={onSeatTap}
+            />
+          );
+        })}
         <div
           className="circular-table-body"
+          style={{
+            width: bodyD,
+            height: bodyD,
+            left: center,
+            top: center,
+            cursor: isCanvas ? 'grab' : 'default',
+          }}
           onPointerDown={isCanvas ? onDragHandlePointerDown : undefined}
-          style={{ cursor: isCanvas ? 'grab' : 'default' }}
         >
           <TableLabel table={table} onRename={onRename} onRemove={onRemove} />
+          {onSetShape && (
+            <button className="shape-toggle-btn" onPointerDown={e => e.stopPropagation()} onClick={() => onSetShape('rectangular')} title="Mudar para rectangular">⬛</button>
+          )}
         </div>
       </div>
     );
   }
 
   // ── RECTANGULAR ──
-  const leftSeats = [0, 1, 2, 3];
-  const rightSeats = [4, 5, 6, 7];
+  const half = Math.ceil(n / 2);
+  const leftSeats = Array.from({ length: half }, (_, i) => i);
+  const rightSeats = Array.from({ length: n - half }, (_, i) => i + half);
 
   return (
     <div className="table-card">
@@ -203,19 +215,21 @@ export default function TableCard({ table, guests, onRemove, onRename, onUnassig
       >
         <TableLabel table={table} onRename={onRename} onRemove={onRemove} />
         {onSetShape && (
-          <button className="shape-toggle-btn" onClick={() => onSetShape('circular')} title="Mudar para circular">⭕</button>
+          <button className="shape-toggle-btn" onPointerDown={e => e.stopPropagation()} onClick={() => onSetShape('circular')} title="Mudar para circular">⬤</button>
         )}
       </div>
 
-      {/* Right seats */}
-      <div className="seats-col right">
-        {rightSeats.map(i => (
-          <RectSeat key={i} tableId={table.id} seatIndex={i}
-            guest={table.seats[i] ? guestMap[table.seats[i]!] ?? null : null}
-            onUnassign={onUnassign} onSeatTap={onSeatTap}
-          />
-        ))}
-      </div>
+      {/* Right seats (omitted entirely when there are none, e.g. single-seat table) */}
+      {rightSeats.length > 0 && (
+        <div className="seats-col right">
+          {rightSeats.map(i => (
+            <RectSeat key={i} tableId={table.id} seatIndex={i}
+              guest={table.seats[i] ? guestMap[table.seats[i]!] ?? null : null}
+              onUnassign={onUnassign} onSeatTap={onSeatTap}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

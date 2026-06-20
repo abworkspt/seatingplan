@@ -81,8 +81,14 @@ export default function App() {
   const handleDragEnd = (event: DragEndEvent) => {
     setActiveGuest(null);
     const { active, over } = event;
-    if (!over) return;
     const guestId = active.id as string;
+    const seated = state.tables.some(t => t.seats.includes(guestId));
+
+    // Dropped outside any droppable: if the guest was seated, take them out of the seat.
+    if (!over) {
+      if (seated) dispatch({ type: 'UNASSIGN_GUEST', guestId });
+      return;
+    }
     const overId = over.id as string;
 
     if (overId.startsWith('guest-target::')) {
@@ -123,7 +129,8 @@ export default function App() {
     tables: state.tables,
     guests: state.guests,
     canvas: !isMobile,
-    onAddTable: () => dispatch({ type: 'ADD_TABLE' }),
+    onAddTables: (count: number, shape: 'rectangular' | 'circular', seatCount: number) =>
+      dispatch({ type: 'ADD_TABLES', count, shape, seatCount }),
     onRemoveTable: (id: string) => dispatch({ type: 'REMOVE_TABLE', tableId: id }),
     onRenameTable: (id: string, label: string) => dispatch({ type: 'RENAME_TABLE', tableId: id, label }),
     onUnassign: (guestId: string) => dispatch({ type: 'UNASSIGN_GUEST', guestId }),
