@@ -4,6 +4,9 @@ export interface Table {
   id: string;
   label: string;
   seats: (string | null)[];
+  shape: 'rectangular' | 'circular';
+  x: number;
+  y: number;
 }
 
 export interface AppState {
@@ -23,20 +26,65 @@ type Action =
   | { type: 'ADD_TABLE' }
   | { type: 'REMOVE_TABLE'; tableId: string }
   | { type: 'RENAME_TABLE'; tableId: string; label: string }
+  | { type: 'MOVE_TABLE'; tableId: string; x: number; y: number }
+  | { type: 'SET_TABLE_SHAPE'; tableId: string; shape: 'rectangular' | 'circular' }
   | { type: 'LOAD'; state: AppState };
 
+const COL_LEFT = 20;
+const COL_RIGHT = 430;
+const ROW_H = 190;
+
+function getDefaultPosition(n: number): { x: number; y: number } {
+  if (n <= 8) {
+    // Right column, Mesa 8 at top (y=20), Mesa 1 at bottom
+    return { x: COL_RIGHT, y: (8 - n) * ROW_H + 20 };
+  } else {
+    // Left column, Mesa 16 at top (y=20), Mesa 9 at bottom
+    return { x: COL_LEFT, y: (16 - n) * ROW_H + 20 };
+  }
+}
+
 function createInitialTables(): Table[] {
-  return Array.from({ length: 16 }, (_, i) => ({
-    id: `table-${i + 1}`,
-    label: `Mesa ${i + 1}`,
-    seats: Array(8).fill(null),
-  }));
+  return Array.from({ length: 16 }, (_, i) => {
+    const n = i + 1;
+    return {
+      id: `table-${n}`,
+      label: `Mesa ${n}`,
+      seats: Array(8).fill(null),
+      shape: 'rectangular' as const,
+      ...getDefaultPosition(n),
+    };
+  });
+}
+
+// Migrate tables that may be missing shape/x/y (legacy data)
+function migrateTable(t: Record<string, unknown>): Table {
+  const num = parseInt(String(t.label ?? '').replace(/\D/g, '')) || 1;
+  const clamped = Math.min(Math.max(num, 1), 32);
+  const pos = getDefaultPosition(clamped);
+  return {
+    id: t.id as string,
+    label: t.label as string,
+    seats: (t.seats as (string | null)[]) ?? Array(8).fill(null),
+    shape: (t.shape as 'rectangular' | 'circular') ?? 'rectangular',
+    x: typeof t.x === 'number' ? t.x : pos.x,
+    y: typeof t.y === 'number' ? t.y : pos.y,
+  };
+}
+
+function migrateState(s: Partial<AppState>): AppState {
+  return {
+    guests: s.guests ?? INITIAL_GUESTS,
+    tables: (s.tables ?? createInitialTables()).map(t =>
+      migrateTable(t as unknown as Record<string, unknown>)
+    ),
+  };
 }
 
 export function getInitialState(): AppState {
   try {
     const saved = localStorage.getItem('seatingplan');
-    if (saved) return JSON.parse(saved);
+    if (saved) return migrateState(JSON.parse(saved));
   } catch {}
   return { guests: INITIAL_GUESTS, tables: createInitialTables() };
 }
@@ -44,16 +92,14 @@ export function getInitialState(): AppState {
 export function reducer(state: AppState, action: Action): AppState {
   switch (action.type) {
     case 'LOAD':
-      return action.state;
+      return migrateState(action.state as Partial<AppState>);
 
     case 'ASSIGN_GUEST': {
       const { guestId, tableId, seatIndex } = action;
-      // Remove from current seat if any
       const tables = state.tables.map(t => ({
         ...t,
         seats: t.seats.map(s => (s === guestId ? null : s)),
       }));
-      // Place in new seat
       const newTables = tables.map(t => {
         if (t.id !== tableId) return t;
         const seats = [...t.seats];
@@ -79,11 +125,9 @@ export function reducer(state: AppState, action: Action): AppState {
 
     case 'MOVE_GUEST': {
       const { guestId, toTableId, toSeatIndex } = action;
-      // Who is currently in the target seat?
       const targetTable = state.tables.find(t => t.id === toTableId);
       const displacedId = targetTable?.seats[toSeatIndex] ?? null;
 
-      // Find current seat of moving guest
       let fromTableId: string | null = null;
       let fromSeatIndex: number | null = null;
       for (const t of state.tables) {
@@ -95,20 +139,20 @@ export function reducer(state: AppState, action: Action): AppState {
         const seats = [...t.seats];
         if (t.id === toTableId) {
           seats[toSeatIndex] = guestId;
-          // If displaced guest needs to go to fromSeat (swap)
           if (displacedId && fromTableId === toTableId && fromSeatIndex !== null) {
             seats[fromSeatIndex] = displacedId;
           }
         }
         if (t.id === fromTableId && fromSeatIndex !== null && t.id !== toTableId) {
-          seats[fromSeatIndex] = displacedId; // null or swapped
+          seats[fromSeatIndex] = displacedId;
         }
         return { ...t, seats };
       });
 
       const guests = state.guests.map(g => {
         if (g.id === guestId) return { ...g, tableId: toTableId, seatIndex: toSeatIndex };
-        if (g.id === displacedId && fromTableId) return { ...g, tableId: fromTableId, seatIndex: fromSeatIndex ?? undefined };
+        if (g.id === displacedId && fromTableId)
+          return { ...g, tableId: fromTableId, seatIndex: fromSeatIndex ?? undefined };
         return g;
       });
 
@@ -116,23 +160,15 @@ export function reducer(state: AppState, action: Action): AppState {
     }
 
     case 'SET_COMPANION': {
-      // Make guestId a companion of mainGuestId
-      // Also ensure the guest is no longer marked as main
       const guests = state.guests.map(g => {
-        if (g.id === action.guestId) {
-          return { ...g, isMain: false, mainGuestId: action.mainGuestId };
-        }
-        // If this guest was previously a companion of guestId, detach it
-        if (g.mainGuestId === action.guestId) {
-          return { ...g, isMain: true, mainGuestId: undefined };
-        }
+        if (g.id === action.guestId) return { ...g, isMain: false, mainGuestId: action.mainGuestId };
+        if (g.mainGuestId === action.guestId) return { ...g, isMain: true, mainGuestId: undefined };
         return g;
       });
       return { ...state, guests };
     }
 
     case 'REMOVE_COMPANION': {
-      // Detach guest from its main, make it a standalone main guest
       const guests = state.guests.map(g =>
         g.id === action.guestId ? { ...g, isMain: true, mainGuestId: undefined } : g
       );
@@ -158,17 +194,14 @@ export function reducer(state: AppState, action: Action): AppState {
     }
 
     case 'DELETE_GUEST': {
-      // Remove from any seat
       const tables = state.tables.map(t => ({
         ...t,
         seats: t.seats.map(s => (s === action.guestId ? null : s)),
       }));
-      // Detach any companions that referenced this guest as main
       const guests = state.guests
         .filter(g => g.id !== action.guestId)
-        .map(g => g.mainGuestId === action.guestId
-          ? { ...g, isMain: true, mainGuestId: undefined }
-          : g
+        .map(g =>
+          g.mainGuestId === action.guestId ? { ...g, isMain: true, mainGuestId: undefined } : g
         );
       return { ...state, guests, tables };
     }
@@ -179,6 +212,9 @@ export function reducer(state: AppState, action: Action): AppState {
         id: `table-${Date.now()}`,
         label: `Mesa ${num}`,
         seats: Array(8).fill(null),
+        shape: 'rectangular',
+        x: 220,
+        y: 220,
       };
       return { ...state, tables: [...state.tables, table] };
     }
@@ -197,6 +233,20 @@ export function reducer(state: AppState, action: Action): AppState {
     case 'RENAME_TABLE': {
       const tables = state.tables.map(t =>
         t.id === action.tableId ? { ...t, label: action.label } : t
+      );
+      return { ...state, tables };
+    }
+
+    case 'MOVE_TABLE': {
+      const tables = state.tables.map(t =>
+        t.id === action.tableId ? { ...t, x: action.x, y: action.y } : t
+      );
+      return { ...state, tables };
+    }
+
+    case 'SET_TABLE_SHAPE': {
+      const tables = state.tables.map(t =>
+        t.id === action.tableId ? { ...t, shape: action.shape } : t
       );
       return { ...state, tables };
     }

@@ -122,10 +122,13 @@ export default function App() {
   const floorPlanProps = {
     tables: state.tables,
     guests: state.guests,
+    canvas: !isMobile,
     onAddTable: () => dispatch({ type: 'ADD_TABLE' }),
     onRemoveTable: (id: string) => dispatch({ type: 'REMOVE_TABLE', tableId: id }),
     onRenameTable: (id: string, label: string) => dispatch({ type: 'RENAME_TABLE', tableId: id, label }),
     onUnassign: (guestId: string) => dispatch({ type: 'UNASSIGN_GUEST', guestId }),
+    onMoveTable: (id: string, x: number, y: number) => dispatch({ type: 'MOVE_TABLE', tableId: id, x, y }),
+    onSetTableShape: (id: string, shape: 'rectangular' | 'circular') => dispatch({ type: 'SET_TABLE_SHAPE', tableId: id, shape }),
     onSeatTap: isMobile ? (tableId: string, seatIndex: number) => setPickerTarget({ tableId, seatIndex }) : undefined,
   };
 
