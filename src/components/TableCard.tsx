@@ -3,6 +3,7 @@ import { useDroppable, useDraggable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
 import type { Table } from '../store';
 import type { Guest } from '../data/guests';
+import EditTableModal from './EditTableModal';
 
 interface Props {
   table: Table;
@@ -10,7 +11,7 @@ interface Props {
   onRemove: (tableId: string) => void;
   onRename: (tableId: string, label: string) => void;
   onUnassign: (guestId: string) => void;
-  onSetShape?: (shape: 'rectangular' | 'circular') => void;
+  onEditTable?: (label: string, shape: 'rectangular' | 'circular', seatCount: number) => void;
   onDragHandlePointerDown?: (e: React.PointerEvent) => void;
   onSeatTap?: (tableId: string, seatIndex: number) => void;
 }
@@ -129,10 +130,27 @@ function TableLabel({ table, onRename, onRemove }: {
 }
 
 // ── Main TableCard ──
-export default function TableCard({ table, guests, onRemove, onRename, onUnassign, onSetShape, onDragHandlePointerDown, onSeatTap }: Props) {
+export default function TableCard({ table, guests, onRemove, onRename, onUnassign, onEditTable, onDragHandlePointerDown, onSeatTap }: Props) {
+  const [editOpen, setEditOpen] = useState(false);
   const guestMap = Object.fromEntries(guests.map(g => [g.id, g]));
   const isCanvas = !!onDragHandlePointerDown;
   const n = table.seats.length;
+
+  const editButton = onEditTable && (
+    <button
+      className="table-edit-btn"
+      onPointerDown={e => e.stopPropagation()}
+      onClick={() => setEditOpen(true)}
+      title="Editar mesa"
+    >✎</button>
+  );
+  const editModal = editOpen && onEditTable && (
+    <EditTableModal
+      table={table}
+      onSave={onEditTable}
+      onClose={() => setEditOpen(false)}
+    />
+  );
 
   // ── CIRCULAR ──
   if (table.shape === 'circular') {
@@ -149,6 +167,8 @@ export default function TableCard({ table, guests, onRemove, onRename, onUnassig
     const center = cardSize / 2;
 
     return (
+      <>
+      {editModal}
       <div className="circular-table-card" style={{ width: cardSize, height: cardSize }}>
         {Array.from({ length: n }, (_, i) => {
           const angleDeg = -90 + i * (360 / n); // first seat at top, clockwise
@@ -182,11 +202,10 @@ export default function TableCard({ table, guests, onRemove, onRename, onUnassig
           onPointerDown={isCanvas ? onDragHandlePointerDown : undefined}
         >
           <TableLabel table={table} onRename={onRename} onRemove={onRemove} />
-          {onSetShape && (
-            <button className="shape-toggle-btn" onPointerDown={e => e.stopPropagation()} onClick={() => onSetShape('rectangular')} title="Mudar para rectangular">⬛</button>
-          )}
+          {editButton}
         </div>
       </div>
+      </>
     );
   }
 
@@ -196,6 +215,8 @@ export default function TableCard({ table, guests, onRemove, onRename, onUnassig
   const rightSeats = Array.from({ length: n - half }, (_, i) => i + half);
 
   return (
+    <>
+    {editModal}
     <div className="table-card">
       {/* Left seats */}
       <div className="seats-col left">
@@ -214,9 +235,7 @@ export default function TableCard({ table, guests, onRemove, onRename, onUnassig
         style={{ cursor: isCanvas ? 'grab' : 'default' }}
       >
         <TableLabel table={table} onRename={onRename} onRemove={onRemove} />
-        {onSetShape && (
-          <button className="shape-toggle-btn" onPointerDown={e => e.stopPropagation()} onClick={() => onSetShape('circular')} title="Mudar para circular">⬤</button>
-        )}
+        {editButton}
       </div>
 
       {/* Right seats (omitted entirely when there are none, e.g. single-seat table) */}
@@ -231,5 +250,6 @@ export default function TableCard({ table, guests, onRemove, onRename, onUnassig
         </div>
       )}
     </div>
+    </>
   );
 }

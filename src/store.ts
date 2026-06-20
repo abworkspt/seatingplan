@@ -37,6 +37,7 @@ type Action =
   | { type: 'RENAME_TABLE'; tableId: string; label: string }
   | { type: 'MOVE_TABLE'; tableId: string; x: number; y: number }
   | { type: 'SET_TABLE_SHAPE'; tableId: string; shape: 'rectangular' | 'circular' }
+  | { type: 'EDIT_TABLE'; tableId: string; label: string; shape: 'rectangular' | 'circular'; seatCount: number }
   | { type: 'LOAD'; state: AppState };
 
 const COL_LEFT = 20;
@@ -274,6 +275,29 @@ export function reducer(state: AppState, action: Action): AppState {
         t.id === action.tableId ? { ...t, shape: action.shape } : t
       );
       return { ...state, tables };
+    }
+
+    case 'EDIT_TABLE': {
+      const seatCount = Math.max(1, Math.min(20, action.seatCount));
+      let removedGuestIds: string[] = [];
+      const tables = state.tables.map(t => {
+        if (t.id !== action.tableId) return t;
+        let seats = [...t.seats];
+        if (seatCount < seats.length) {
+          // Shrinking: guests sitting in the removed (trailing) seats get unassigned
+          removedGuestIds = seats.slice(seatCount).filter(Boolean) as string[];
+          seats = seats.slice(0, seatCount);
+        } else if (seatCount > seats.length) {
+          seats = [...seats, ...Array(seatCount - seats.length).fill(null)];
+        }
+        return { ...t, label: action.label, shape: action.shape, seats };
+      });
+      const guests = removedGuestIds.length
+        ? state.guests.map(g =>
+            removedGuestIds.includes(g.id) ? { ...g, tableId: undefined, seatIndex: undefined } : g
+          )
+        : state.guests;
+      return { ...state, guests, tables };
     }
 
     default:

@@ -912,21 +912,21 @@ body {
 }
 
 /* SHAPE TOGGLE */
-.shape-toggle-btn {
+.table-edit-btn {
   position: absolute;
-  bottom: 7px;
-  right: 8px;
-  background: rgba(255,255,255,0.2);
+  bottom: 6px;
+  right: 7px;
+  background: rgba(255,255,255,0.22);
   border: none;
-  font-size: 11px;
+  font-size: 13px;
   cursor: pointer;
-  padding: 2px 4px;
-  border-radius: 3px;
+  padding: 2px 6px;
+  border-radius: 4px;
   line-height: 1;
-  color: rgba(255,255,255,0.8);
+  color: #fff;
   transition: background 0.15s;
 }
-.shape-toggle-btn:hover { background: rgba(255,255,255,0.4); }
+.table-edit-btn:hover { background: rgba(255,255,255,0.45); }
 
 /* CIRCULAR TABLE */
 .circular-table-card {
@@ -976,7 +976,7 @@ body {
   padding: 1px 3px;
   box-sizing: border-box;
 }
-.circular-table-body .shape-toggle-btn {
+.circular-table-body .table-edit-btn {
   bottom: 4px;
   font-size: 9px;
 }
@@ -1061,6 +1061,27 @@ body {
   font-weight: 600;
   color: var(--text-mid);
   letter-spacing: 0.3px;
+}
+.modal-text-input {
+  width: 100%;
+  box-sizing: border-box;
+  height: 38px;
+  padding: 0 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: inherit;
+  color: var(--text);
+  background: var(--surface);
+}
+.modal-text-input:focus {
+  outline: none;
+  border-color: var(--table-bg);
+}
+.modal-warning {
+  font-size: 11.5px;
+  color: var(--accent);
+  line-height: 1.4;
 }
 
 /* Stepper */

@@ -1,21 +1,26 @@
 import { useState } from 'react';
 import Stepper from './Stepper';
+import type { Table } from '../store';
 
 interface Props {
-  onConfirm: (count: number, shape: 'rectangular' | 'circular', seatCount: number) => void;
+  table: Table;
+  onSave: (label: string, shape: 'rectangular' | 'circular', seatCount: number) => void;
   onClose: () => void;
 }
 
-export default function AddTablesModal({ onConfirm, onClose }: Props) {
-  const [count, setCount] = useState(1);
-  const [shape, setShape] = useState<'rectangular' | 'circular'>('rectangular');
-  const [seatCount, setSeatCount] = useState(8);
-  const [submitted, setSubmitted] = useState(false);
+export default function EditTableModal({ table, onSave, onClose }: Props) {
+  const [label, setLabel] = useState(table.label);
+  const [shape, setShape] = useState<'rectangular' | 'circular'>(table.shape);
+  const [seatCount, setSeatCount] = useState(table.seats.length);
+  const [saved, setSaved] = useState(false);
 
-  const handleConfirm = () => {
-    if (submitted) return;
-    setSubmitted(true);
-    onConfirm(count, shape, seatCount);
+  // How many seated guests would be removed if the table shrinks
+  const removedOccupied = table.seats.slice(seatCount).filter(Boolean).length;
+
+  const handleSave = () => {
+    if (saved) return;
+    setSaved(true);
+    onSave(label.trim() || table.label, shape, seatCount);
     onClose();
   };
 
@@ -23,14 +28,21 @@ export default function AddTablesModal({ onConfirm, onClose }: Props) {
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-card" onClick={e => e.stopPropagation()}>
         <div className="modal-header">
-          <span className="modal-title">Adicionar mesas</span>
+          <span className="modal-title">Editar mesa</span>
           <button className="modal-close" onClick={onClose}>×</button>
         </div>
 
         <div className="modal-body">
           <div className="modal-field">
-            <label className="modal-label">Quantas mesas</label>
-            <Stepper value={count} min={1} max={50} onChange={setCount} />
+            <label className="modal-label">Nome</label>
+            <input
+              className="modal-text-input"
+              value={label}
+              onChange={e => setLabel(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') handleSave(); }}
+              placeholder="Nome da mesa"
+              autoFocus
+            />
           </div>
 
           <div className="modal-field">
@@ -56,16 +68,19 @@ export default function AddTablesModal({ onConfirm, onClose }: Props) {
           </div>
 
           <div className="modal-field">
-            <label className="modal-label">Lugares por mesa</label>
+            <label className="modal-label">Lugares</label>
             <Stepper value={seatCount} min={1} max={20} onChange={setSeatCount} />
+            {removedOccupied > 0 && (
+              <span className="modal-warning">
+                ⚠ {removedOccupied} convidado{removedOccupied > 1 ? 's serão retirados' : ' será retirado'} dos lugares removidos
+              </span>
+            )}
           </div>
         </div>
 
         <div className="modal-footer">
           <button className="modal-btn cancel" onClick={onClose}>Cancelar</button>
-          <button className="modal-btn confirm" onClick={handleConfirm}>
-            Adicionar {count > 1 ? `${count} mesas` : 'mesa'}
-          </button>
+          <button className="modal-btn confirm" onClick={handleSave}>Guardar</button>
         </div>
       </div>
     </div>

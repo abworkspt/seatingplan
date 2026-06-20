@@ -13,14 +13,14 @@ interface Props {
   onRenameTable: (id: string, label: string) => void;
   onUnassign: (guestId: string) => void;
   onMoveTable: (id: string, x: number, y: number) => void;
-  onSetTableShape: (id: string, shape: 'rectangular' | 'circular') => void;
+  onEditTable: (id: string, label: string, shape: 'rectangular' | 'circular', seatCount: number) => void;
   onSeatTap?: (tableId: string, seatIndex: number) => void;
 }
 
 export default function FloorPlan({
   tables, guests, canvas,
   onAddTables, onRemoveTable, onRenameTable, onUnassign,
-  onMoveTable, onSetTableShape, onSeatTap,
+  onMoveTable, onEditTable, onSeatTap,
 }: Props) {
   const [showAddModal, setShowAddModal] = useState(false);
   const dragRef = useRef<{
@@ -102,6 +102,7 @@ export default function FloorPlan({
               onRemove={onRemoveTable}
               onRename={onRenameTable}
               onUnassign={onUnassign}
+              onEditTable={(label, shape, seatCount) => onEditTable(table.id, label, shape, seatCount)}
               onSeatTap={onSeatTap}
             />
           ))}
@@ -136,7 +137,7 @@ export default function FloorPlan({
                 onRemove={onRemoveTable}
                 onRename={onRenameTable}
                 onUnassign={onUnassign}
-                onSetShape={shape => onSetTableShape(table.id, shape)}
+                onEditTable={(label, shape, seatCount) => onEditTable(table.id, label, shape, seatCount)}
                 onDragHandlePointerDown={e => handleTableDragStart(e, table)}
               />
             </div>
