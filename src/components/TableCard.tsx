@@ -109,21 +109,30 @@ function TableLabel({ table, onRemove }: {
 // ── Main TableCard ──
 function TableCard({ table, guestMap, onRemove, onUnassign, onEditTable, onTableDragStart, onSeatTap }: Props) {
   const [editOpen, setEditOpen] = useState(false);
+  const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
   const isCanvas = !!onTableDragStart;
   const n = table.seats.length;
   const bodyPointerDown = isCanvas ? (e: React.PointerEvent) => onTableDragStart!(e, table) : undefined;
+
+  const openEdit = (e: React.MouseEvent) => {
+    // Anchor the popover to the live table element on the canvas; centre it on mobile.
+    const card = (e.currentTarget as HTMLElement).closest('.table-card, .circular-table-card') as HTMLElement | null;
+    setAnchorEl(isCanvas ? card : null);
+    setEditOpen(true);
+  };
 
   const editButton = onEditTable && (
     <button
       className="table-edit-btn"
       onPointerDown={e => e.stopPropagation()}
-      onClick={() => setEditOpen(true)}
+      onClick={openEdit}
       title="Editar mesa"
     >✎</button>
   );
   const editModal = editOpen && onEditTable && (
     <EditTableModal
       table={table}
+      anchorEl={anchorEl}
       onSave={(label, shape, seatCount, dims) => onEditTable(table.id, label, shape, seatCount, dims)}
       onClose={() => setEditOpen(false)}
     />

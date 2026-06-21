@@ -66,8 +66,10 @@ export default function FloorPlan({
       const d = dragRef.current;
       if (d) {
         const z = viewRef.current.zoom;
-        const x = Math.max(0, d.origX + (e.clientX - d.startX) / z);
-        const y = Math.max(0, d.origY + (e.clientY - d.startY) / z);
+        // No bounds — tables can be placed anywhere (incl. negative coords);
+        // panning brings off-canvas areas into view.
+        const x = d.origX + (e.clientX - d.startX) / z;
+        const y = d.origY + (e.clientY - d.startY) / z;
         setDragging({ tableId: d.tableId, x, y });
         return;
       }
