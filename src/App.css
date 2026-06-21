@@ -918,6 +918,20 @@ body {
   align-items: center;
   gap: 12px;
 }
+.recenter-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 28px;
+  background: transparent;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  color: var(--text-mid);
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+.recenter-btn:hover { background: var(--surface3); color: var(--text); }
 .zoom-controls {
   display: flex;
   align-items: center;

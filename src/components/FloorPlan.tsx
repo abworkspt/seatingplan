@@ -162,6 +162,31 @@ export default function FloorPlan({
 
   const resetView = () => setView({ zoom: 1, x: 0, y: 0 });
 
+  // Fit every table into the viewport and centre it (works wherever tables were dragged).
+  const recenterView = () => {
+    const vp = viewportRef.current;
+    if (!vp) return;
+    const wrappers = vp.querySelectorAll<HTMLElement>('.canvas-table-wrapper');
+    if (!wrappers.length) { setView({ zoom: 1, x: 0, y: 0 }); return; }
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    wrappers.forEach(w => {
+      // offset* are layout values (canvas coordinates), unaffected by the CSS transform
+      minX = Math.min(minX, w.offsetLeft);
+      minY = Math.min(minY, w.offsetTop);
+      maxX = Math.max(maxX, w.offsetLeft + w.offsetWidth);
+      maxY = Math.max(maxY, w.offsetTop + w.offsetHeight);
+    });
+    const pad = 40;
+    const contentW = (maxX - minX) + pad * 2;
+    const contentH = (maxY - minY) + pad * 2;
+    const vpW = vp.clientWidth;
+    const vpH = vp.clientHeight;
+    const fit = clampZoom(Math.min(vpW / contentW, vpH / contentH, 1));
+    const cx = (minX + maxX) / 2;
+    const cy = (minY + maxY) / 2;
+    setView({ zoom: fit, x: vpW / 2 - cx * fit, y: vpH / 2 - cy * fit });
+  };
+
   const sortedTables = [...tables].sort((a, b) => {
     const na = parseInt(a.label.replace(/\D/g, '')) || 0;
     const nb = parseInt(b.label.replace(/\D/g, '')) || 0;
@@ -210,9 +235,18 @@ export default function FloorPlan({
       <div className="floor-plan-header">
         <h2>Sala</h2>
         <div className="floor-plan-tools">
+          <button className="recenter-btn" onClick={recenterView} title="Centrar mesas na vista">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <circle cx="12" cy="12" r="7" />
+              <line x1="12" y1="1" x2="12" y2="4" />
+              <line x1="12" y1="20" x2="12" y2="23" />
+              <line x1="1" y1="12" x2="4" y2="12" />
+              <line x1="20" y1="12" x2="23" y2="12" />
+            </svg>
+          </button>
           <div className="zoom-controls">
             <button className="zoom-btn" onClick={() => zoomBy(1 / 1.2)} title="Reduzir">−</button>
-            <button className="zoom-level" onClick={resetView} title="Repor vista">{Math.round(view.zoom * 100)}%</button>
+            <button className="zoom-level" onClick={resetView} title="Repor zoom (100%)">{Math.round(view.zoom * 100)}%</button>
             <button className="zoom-btn" onClick={() => zoomBy(1.2)} title="Ampliar">+</button>
           </div>
           <button className="add-table-btn" onClick={() => setShowAddModal(true)}>+ Mesa</button>
