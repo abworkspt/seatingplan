@@ -974,6 +974,8 @@ body {
 .canvas-table-wrapper .seats-col {
   width: 112px;
   flex: 0 0 112px;
+  /* Spread the seats along the real-length table body */
+  justify-content: space-around;
 }
 .canvas-table-wrapper.is-dragging {
   z-index: 1000;

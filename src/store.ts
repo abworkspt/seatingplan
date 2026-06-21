@@ -42,7 +42,7 @@ type Action =
 
 const COL_LEFT = 20;
 const COL_RIGHT = 430;
-const ROW_H = 190;
+const ROW_H = 230;
 
 function getDefaultPosition(n: number): { x: number; y: number } {
   if (n <= 8) {

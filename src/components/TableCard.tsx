@@ -3,6 +3,7 @@ import { useDroppable, useDraggable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
 import type { Table } from '../store';
 import type { Guest } from '../data/guests';
+import { ROUND_DIAMETER_PX, RECT_WIDTH_PX, RECT_LENGTH_PX } from '../tableSizing';
 import EditTableModal from './EditTableModal';
 
 interface Props {
@@ -132,7 +133,8 @@ function TableCard({ table, guestMap, onRemove, onUnassign, onEditTable, onTable
   if (table.shape === 'circular') {
     const seatW = 70;
     const seatH = 26;
-    const bodyD = 84;
+    // Real 1.8 m diameter on the canvas; compact default in the mobile list.
+    const bodyD = isCanvas ? ROUND_DIAMETER_PX : 84;
     const minSpacing = 80; // min distance between adjacent seat centers along the ring
     // Ring must clear the central body; for few seats this floor (not a fixed 80)
     // keeps the card from being huge and mostly empty.
@@ -208,7 +210,10 @@ function TableCard({ table, guestMap, onRemove, onUnassign, onEditTable, onTable
       <div
         className="table-body"
         onPointerDown={bodyPointerDown}
-        style={{ cursor: isCanvas ? 'grab' : 'default' }}
+        style={{
+          cursor: isCanvas ? 'grab' : 'default',
+          ...(isCanvas ? { width: RECT_WIDTH_PX, height: RECT_LENGTH_PX } : null),
+        }}
       >
         <TableLabel table={table} onRemove={onRemove} />
         {editButton}
