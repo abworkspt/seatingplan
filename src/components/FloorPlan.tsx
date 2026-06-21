@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect } from 'react';
+import { useRef, useState, useEffect, useMemo, useCallback } from 'react';
 import type { Table } from '../store';
 import type { Guest } from '../data/guests';
 import TableCard from './TableCard';
@@ -114,7 +114,7 @@ export default function FloorPlan({
     return () => vp.removeEventListener('wheel', onWheel);
   }, [canvas]);
 
-  const handleTableDragStart = (e: React.PointerEvent, table: Table) => {
+  const handleTableDragStart = useCallback((e: React.PointerEvent, table: Table) => {
     e.stopPropagation();
     dragRef.current = {
       tableId: table.id,
@@ -124,7 +124,14 @@ export default function FloorPlan({
       origY: table.y,
     };
     setDragging({ tableId: table.id, x: table.x, y: table.y });
-  };
+  }, []);
+
+  // Built once per guests change and shared by every table, so dragging/panning
+  // (which re-renders FloorPlan) doesn't rebuild it 16× per pointer move.
+  const guestMap = useMemo(
+    () => Object.fromEntries(guests.map(g => [g.id, g])),
+    [guests]
+  );
 
   // Pan only when grabbing empty background (not a table / seat / guest)
   const handleViewportPointerDown = (e: React.PointerEvent) => {
@@ -183,10 +190,10 @@ export default function FloorPlan({
             <TableCard
               key={table.id}
               table={table}
-              guests={guests}
+              guestMap={guestMap}
               onRemove={onRemoveTable}
               onUnassign={onUnassign}
-              onEditTable={(label, shape, seatCount) => onEditTable(table.id, label, shape, seatCount)}
+              onEditTable={onEditTable}
               onSeatTap={onSeatTap}
             />
           ))}
@@ -232,11 +239,11 @@ export default function FloorPlan({
               >
                 <TableCard
                   table={table}
-                  guests={guests}
+                  guestMap={guestMap}
                   onRemove={onRemoveTable}
                   onUnassign={onUnassign}
-                  onEditTable={(label, shape, seatCount) => onEditTable(table.id, label, shape, seatCount)}
-                  onDragHandlePointerDown={e => handleTableDragStart(e, table)}
+                  onEditTable={onEditTable}
+                  onTableDragStart={handleTableDragStart}
                 />
               </div>
             );

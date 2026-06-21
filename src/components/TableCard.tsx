@@ -7,11 +7,11 @@ import EditTableModal from './EditTableModal';
 
 interface Props {
   table: Table;
-  guests: Guest[];
+  guestMap: Record<string, Guest>;
   onRemove: (tableId: string) => void;
   onUnassign: (guestId: string) => void;
-  onEditTable?: (label: string, shape: 'rectangular' | 'circular', seatCount: number) => void;
-  onDragHandlePointerDown?: (e: React.PointerEvent) => void;
+  onEditTable?: (tableId: string, label: string, shape: 'rectangular' | 'circular', seatCount: number) => void;
+  onTableDragStart?: (e: React.PointerEvent, table: Table) => void;
   onSeatTap?: (tableId: string, seatIndex: number) => void;
 }
 
@@ -106,11 +106,11 @@ function TableLabel({ table, onRemove }: {
 }
 
 // ── Main TableCard ──
-export default function TableCard({ table, guests, onRemove, onUnassign, onEditTable, onDragHandlePointerDown, onSeatTap }: Props) {
+function TableCard({ table, guestMap, onRemove, onUnassign, onEditTable, onTableDragStart, onSeatTap }: Props) {
   const [editOpen, setEditOpen] = useState(false);
-  const guestMap = Object.fromEntries(guests.map(g => [g.id, g]));
-  const isCanvas = !!onDragHandlePointerDown;
+  const isCanvas = !!onTableDragStart;
   const n = table.seats.length;
+  const bodyPointerDown = isCanvas ? (e: React.PointerEvent) => onTableDragStart!(e, table) : undefined;
 
   const editButton = onEditTable && (
     <button
@@ -123,7 +123,7 @@ export default function TableCard({ table, guests, onRemove, onUnassign, onEditT
   const editModal = editOpen && onEditTable && (
     <EditTableModal
       table={table}
-      onSave={onEditTable}
+      onSave={(label, shape, seatCount) => onEditTable(table.id, label, shape, seatCount)}
       onClose={() => setEditOpen(false)}
     />
   );
@@ -175,7 +175,7 @@ export default function TableCard({ table, guests, onRemove, onUnassign, onEditT
             top: center,
             cursor: isCanvas ? 'grab' : 'default',
           }}
-          onPointerDown={isCanvas ? onDragHandlePointerDown : undefined}
+          onPointerDown={bodyPointerDown}
         >
           <TableLabel table={table} onRemove={onRemove} />
           {editButton}
@@ -207,7 +207,7 @@ export default function TableCard({ table, guests, onRemove, onUnassign, onEditT
       {/* Table body */}
       <div
         className="table-body"
-        onPointerDown={isCanvas ? onDragHandlePointerDown : undefined}
+        onPointerDown={bodyPointerDown}
         style={{ cursor: isCanvas ? 'grab' : 'default' }}
       >
         <TableLabel table={table} onRemove={onRemove} />
@@ -229,3 +229,5 @@ export default function TableCard({ table, guests, onRemove, onUnassign, onEditT
     </>
   );
 }
+
+export default React.memo(TableCard);
