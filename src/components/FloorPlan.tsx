@@ -30,6 +30,7 @@ export default function FloorPlan({
   // ── table drag ──
   const dragRef = useRef<{ tableId: string; startX: number; startY: number; origX: number; origY: number } | null>(null);
   const [dragging, setDragging] = useState<{ tableId: string; x: number; y: number } | null>(null);
+  const draggingRef = useRef(dragging); draggingRef.current = dragging;
   const onMoveTableRef = useRef(onMoveTable);
   onMoveTableRef.current = onMoveTable;
 
@@ -43,7 +44,25 @@ export default function FloorPlan({
   // Pointer move/up for both table-dragging and canvas-panning
   useEffect(() => {
     if (!canvas) return;
+    const endInteraction = () => {
+      const d = dragRef.current;
+      if (d) {
+        const cur = draggingRef.current;
+        if (cur) onMoveTableRef.current(d.tableId, cur.x, cur.y);
+        dragRef.current = null;
+        setDragging(null);
+      }
+      if (panDragRef.current) {
+        panDragRef.current = null;
+        setPanning(false);
+      }
+    };
     const handleMove = (e: PointerEvent) => {
+      const active = dragRef.current || panDragRef.current;
+      if (!active) return;
+      // If the button was released outside the window, the pointerup never
+      // reached us — detect it on the next move (no buttons held) and stop.
+      if (e.buttons === 0) { endInteraction(); return; }
       const d = dragRef.current;
       if (d) {
         const z = viewRef.current.zoom;
@@ -57,25 +76,15 @@ export default function FloorPlan({
         setView(v => ({ ...v, x: p.origX + (e.clientX - p.startX), y: p.origY + (e.clientY - p.startY) }));
       }
     };
-    const handleUp = () => {
-      const d = dragRef.current;
-      if (d) {
-        setDragging(prev => {
-          if (prev) onMoveTableRef.current(d.tableId, prev.x, prev.y);
-          return null;
-        });
-        dragRef.current = null;
-      }
-      if (panDragRef.current) {
-        panDragRef.current = null;
-        setPanning(false);
-      }
-    };
     window.addEventListener('pointermove', handleMove);
-    window.addEventListener('pointerup', handleUp);
+    window.addEventListener('pointerup', endInteraction);
+    window.addEventListener('pointercancel', endInteraction);
+    window.addEventListener('blur', endInteraction);
     return () => {
       window.removeEventListener('pointermove', handleMove);
-      window.removeEventListener('pointerup', handleUp);
+      window.removeEventListener('pointerup', endInteraction);
+      window.removeEventListener('pointercancel', endInteraction);
+      window.removeEventListener('blur', endInteraction);
     };
   }, [canvas]);
 
