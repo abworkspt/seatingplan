@@ -4,7 +4,7 @@ import {
   useSensor, useSensors,
   type DragEndEvent, type DragStartEvent,
 } from '@dnd-kit/core';
-import { reducer, getInitialState } from './store';
+import { reducer, getInitialState, type TableDims } from './store';
 import type { Guest } from './data/guests';
 import { useIsMobile } from './hooks/useIsMobile';
 import GuestList from './components/GuestList';
@@ -129,13 +129,13 @@ export default function App() {
     tables: state.tables,
     guests: state.guests,
     canvas: !isMobile,
-    onAddTables: (count: number, shape: 'rectangular' | 'circular', seatCount: number) =>
-      dispatch({ type: 'ADD_TABLES', count, shape, seatCount }),
+    onAddTables: (count: number, shape: 'rectangular' | 'circular', seatCount: number, dims: TableDims) =>
+      dispatch({ type: 'ADD_TABLES', count, shape, seatCount, dims }),
     onRemoveTable: (id: string) => dispatch({ type: 'REMOVE_TABLE', tableId: id }),
     onUnassign: (guestId: string) => dispatch({ type: 'UNASSIGN_GUEST', guestId }),
     onMoveTable: (id: string, x: number, y: number) => dispatch({ type: 'MOVE_TABLE', tableId: id, x, y }),
-    onEditTable: (id: string, label: string, shape: 'rectangular' | 'circular', seatCount: number) =>
-      dispatch({ type: 'EDIT_TABLE', tableId: id, label, shape, seatCount }),
+    onEditTable: (id: string, label: string, shape: 'rectangular' | 'circular', seatCount: number, dims: TableDims) =>
+      dispatch({ type: 'EDIT_TABLE', tableId: id, label, shape, seatCount, dims }),
     onSeatTap: isMobile ? (tableId: string, seatIndex: number) => setPickerTarget({ tableId, seatIndex }) : undefined,
   };
 

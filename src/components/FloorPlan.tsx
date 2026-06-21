@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect, useMemo, useCallback } from 'react';
-import type { Table } from '../store';
+import type { Table, TableDims } from '../store';
 import type { Guest } from '../data/guests';
 import TableCard from './TableCard';
 import AddTablesModal from './AddTablesModal';
@@ -8,11 +8,11 @@ interface Props {
   tables: Table[];
   guests: Guest[];
   canvas?: boolean; // desktop canvas mode
-  onAddTables: (count: number, shape: 'rectangular' | 'circular', seatCount: number) => void;
+  onAddTables: (count: number, shape: 'rectangular' | 'circular', seatCount: number, dims: TableDims) => void;
   onRemoveTable: (id: string) => void;
   onUnassign: (guestId: string) => void;
   onMoveTable: (id: string, x: number, y: number) => void;
-  onEditTable: (id: string, label: string, shape: 'rectangular' | 'circular', seatCount: number) => void;
+  onEditTable: (id: string, label: string, shape: 'rectangular' | 'circular', seatCount: number, dims: TableDims) => void;
   onSeatTap?: (tableId: string, seatIndex: number) => void;
 }
 

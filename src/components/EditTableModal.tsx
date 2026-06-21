@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import Stepper from './Stepper';
-import type { Table } from '../store';
+import TableSizeFields from './TableSizeFields';
+import type { Table, TableDims } from '../store';
 
 interface Props {
   table: Table;
-  onSave: (label: string, shape: 'rectangular' | 'circular', seatCount: number) => void;
+  onSave: (label: string, shape: 'rectangular' | 'circular', seatCount: number, dims: TableDims) => void;
   onClose: () => void;
 }
 
@@ -12,6 +13,11 @@ export default function EditTableModal({ table, onSave, onClose }: Props) {
   const [label, setLabel] = useState(table.label);
   const [shape, setShape] = useState<'rectangular' | 'circular'>(table.shape);
   const [seatCount, setSeatCount] = useState(table.seats.length);
+  const [dims, setDims] = useState<TableDims>({
+    lengthM: table.lengthM,
+    widthM: table.widthM,
+    diameterM: table.diameterM,
+  });
   const [saved, setSaved] = useState(false);
 
   // How many seated guests would be removed if the table shrinks
@@ -20,7 +26,7 @@ export default function EditTableModal({ table, onSave, onClose }: Props) {
   const handleSave = () => {
     if (saved) return;
     setSaved(true);
-    onSave(label.trim() || table.label, shape, seatCount);
+    onSave(label.trim() || table.label, shape, seatCount, dims);
     onClose();
   };
 
@@ -76,6 +82,8 @@ export default function EditTableModal({ table, onSave, onClose }: Props) {
               </span>
             )}
           </div>
+
+          <TableSizeFields shape={shape} dims={dims} onChange={p => setDims(d => ({ ...d, ...p }))} />
         </div>
 
         <div className="modal-footer">

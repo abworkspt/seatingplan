@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import Stepper from './Stepper';
+import TableSizeFields from './TableSizeFields';
+import { DEFAULT_DIMS, type TableDims } from '../store';
 
 interface Props {
-  onConfirm: (count: number, shape: 'rectangular' | 'circular', seatCount: number) => void;
+  onConfirm: (count: number, shape: 'rectangular' | 'circular', seatCount: number, dims: TableDims) => void;
   onClose: () => void;
 }
 
@@ -10,12 +12,13 @@ export default function AddTablesModal({ onConfirm, onClose }: Props) {
   const [count, setCount] = useState(1);
   const [shape, setShape] = useState<'rectangular' | 'circular'>('rectangular');
   const [seatCount, setSeatCount] = useState(8);
+  const [dims, setDims] = useState<TableDims>(DEFAULT_DIMS);
   const [submitted, setSubmitted] = useState(false);
 
   const handleConfirm = () => {
     if (submitted) return;
     setSubmitted(true);
-    onConfirm(count, shape, seatCount);
+    onConfirm(count, shape, seatCount, dims);
     onClose();
   };
 
@@ -59,6 +62,8 @@ export default function AddTablesModal({ onConfirm, onClose }: Props) {
             <label className="modal-label">Lugares por mesa</label>
             <Stepper value={seatCount} min={1} max={20} onChange={setSeatCount} />
           </div>
+
+          <TableSizeFields shape={shape} dims={dims} onChange={p => setDims(d => ({ ...d, ...p }))} />
         </div>
 
         <div className="modal-footer">

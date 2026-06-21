@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { useDroppable, useDraggable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
-import type { Table } from '../store';
+import type { Table, TableDims } from '../store';
 import type { Guest } from '../data/guests';
-import { ROUND_DIAMETER_PX, RECT_WIDTH_PX, RECT_LENGTH_PX } from '../tableSizing';
+import { PX_PER_M, ROUND_DIAMETER_PX, RECT_WIDTH_PX, RECT_LENGTH_PX } from '../tableSizing';
 import EditTableModal from './EditTableModal';
 
 interface Props {
@@ -11,7 +11,7 @@ interface Props {
   guestMap: Record<string, Guest>;
   onRemove: (tableId: string) => void;
   onUnassign: (guestId: string) => void;
-  onEditTable?: (tableId: string, label: string, shape: 'rectangular' | 'circular', seatCount: number) => void;
+  onEditTable?: (tableId: string, label: string, shape: 'rectangular' | 'circular', seatCount: number, dims: TableDims) => void;
   onTableDragStart?: (e: React.PointerEvent, table: Table) => void;
   onSeatTap?: (tableId: string, seatIndex: number) => void;
 }
@@ -124,7 +124,7 @@ function TableCard({ table, guestMap, onRemove, onUnassign, onEditTable, onTable
   const editModal = editOpen && onEditTable && (
     <EditTableModal
       table={table}
-      onSave={(label, shape, seatCount) => onEditTable(table.id, label, shape, seatCount)}
+      onSave={(label, shape, seatCount, dims) => onEditTable(table.id, label, shape, seatCount, dims)}
       onClose={() => setEditOpen(false)}
     />
   );
@@ -133,8 +133,8 @@ function TableCard({ table, guestMap, onRemove, onUnassign, onEditTable, onTable
   if (table.shape === 'circular') {
     const seatW = 70;
     const seatH = 26;
-    // Real 1.8 m diameter on the canvas; compact default in the mobile list.
-    const bodyD = isCanvas ? ROUND_DIAMETER_PX : 84;
+    // Real diameter on the canvas; compact default in the mobile list.
+    const bodyD = isCanvas ? (table.diameterM ?? ROUND_DIAMETER_PX / PX_PER_M) * PX_PER_M : 84;
     const minSpacing = 80; // min distance between adjacent seat centers along the ring
     // Ring must clear the central body; for few seats this floor (not a fixed 80)
     // keeps the card from being huge and mostly empty.
@@ -212,7 +212,12 @@ function TableCard({ table, guestMap, onRemove, onUnassign, onEditTable, onTable
         onPointerDown={bodyPointerDown}
         style={{
           cursor: isCanvas ? 'grab' : 'default',
-          ...(isCanvas ? { width: RECT_WIDTH_PX, height: RECT_LENGTH_PX } : null),
+          ...(isCanvas
+            ? {
+                width: (table.widthM ?? RECT_WIDTH_PX / PX_PER_M) * PX_PER_M,
+                height: (table.lengthM ?? RECT_LENGTH_PX / PX_PER_M) * PX_PER_M,
+              }
+            : null),
         }}
       >
         <TableLabel table={table} onRemove={onRemove} />

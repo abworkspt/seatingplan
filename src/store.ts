@@ -1,4 +1,17 @@
 import { INITIAL_GUESTS, type Guest } from './data/guests';
+import { RECT_LENGTH_M, RECT_WIDTH_M, ROUND_DIAMETER_M } from './tableSizing';
+
+export interface TableDims {
+  lengthM: number;   // rectangular long side (seats run along this)
+  widthM: number;    // rectangular short side (depth)
+  diameterM: number; // circular diameter
+}
+
+export const DEFAULT_DIMS: TableDims = {
+  lengthM: RECT_LENGTH_M,
+  widthM: RECT_WIDTH_M,
+  diameterM: ROUND_DIAMETER_M,
+};
 
 let idCounter = 0;
 function newId(): string {
@@ -16,6 +29,9 @@ export interface Table {
   shape: 'rectangular' | 'circular';
   x: number;
   y: number;
+  lengthM: number;
+  widthM: number;
+  diameterM: number;
 }
 
 export interface AppState {
@@ -32,12 +48,12 @@ type Action =
   | { type: 'ADD_GUEST'; name: string; guestType: 'adult' | 'child' | 'baby'; mainGuestId?: string }
   | { type: 'DELETE_GUEST'; guestId: string }
   | { type: 'RENAME_GUEST'; guestId: string; name: string }
-  | { type: 'ADD_TABLES'; count: number; shape: 'rectangular' | 'circular'; seatCount: number }
+  | { type: 'ADD_TABLES'; count: number; shape: 'rectangular' | 'circular'; seatCount: number; dims: TableDims }
   | { type: 'REMOVE_TABLE'; tableId: string }
   | { type: 'RENAME_TABLE'; tableId: string; label: string }
   | { type: 'MOVE_TABLE'; tableId: string; x: number; y: number }
   | { type: 'SET_TABLE_SHAPE'; tableId: string; shape: 'rectangular' | 'circular' }
-  | { type: 'EDIT_TABLE'; tableId: string; label: string; shape: 'rectangular' | 'circular'; seatCount: number }
+  | { type: 'EDIT_TABLE'; tableId: string; label: string; shape: 'rectangular' | 'circular'; seatCount: number; dims: TableDims }
   | { type: 'LOAD'; state: AppState };
 
 const COL_LEFT = 20;
@@ -54,6 +70,19 @@ function getDefaultPosition(n: number): { x: number; y: number } {
   }
 }
 
+const MIN_M = 0.5;
+const MAX_M = 12;
+function clampM(v: number, fallback: number): number {
+  return typeof v === 'number' && !isNaN(v) ? Math.max(MIN_M, Math.min(MAX_M, v)) : fallback;
+}
+function clampDims(d: TableDims): TableDims {
+  return {
+    lengthM: clampM(d.lengthM, DEFAULT_DIMS.lengthM),
+    widthM: clampM(d.widthM, DEFAULT_DIMS.widthM),
+    diameterM: clampM(d.diameterM, DEFAULT_DIMS.diameterM),
+  };
+}
+
 function createInitialTables(): Table[] {
   return Array.from({ length: 16 }, (_, i) => {
     const n = i + 1;
@@ -63,6 +92,7 @@ function createInitialTables(): Table[] {
       seats: Array(8).fill(null),
       shape: 'rectangular' as const,
       ...getDefaultPosition(n),
+      ...DEFAULT_DIMS,
     };
   });
 }
@@ -79,6 +109,9 @@ function migrateTable(t: Record<string, unknown>): Table {
     shape: (t.shape as 'rectangular' | 'circular') ?? 'rectangular',
     x: typeof t.x === 'number' ? t.x : pos.x,
     y: typeof t.y === 'number' ? t.y : pos.y,
+    lengthM: typeof t.lengthM === 'number' ? t.lengthM : DEFAULT_DIMS.lengthM,
+    widthM: typeof t.widthM === 'number' ? t.widthM : DEFAULT_DIMS.widthM,
+    diameterM: typeof t.diameterM === 'number' ? t.diameterM : DEFAULT_DIMS.diameterM,
   };
 }
 
@@ -226,6 +259,7 @@ export function reducer(state: AppState, action: Action): AppState {
     case 'ADD_TABLES': {
       const count = Math.max(1, Math.min(50, action.count));
       const seatCount = Math.max(1, Math.min(20, action.seatCount));
+      const dims = clampDims(action.dims);
       const existingNums = state.tables.map(t => parseInt(t.label.replace(/\D/g, '')) || 0);
       let maxNum = existingNums.length ? Math.max(...existingNums) : 0;
       const newTables: Table[] = [];
@@ -240,6 +274,7 @@ export function reducer(state: AppState, action: Action): AppState {
           shape: action.shape,
           x,
           y,
+          ...dims,
         });
       }
       return { ...state, tables: [...state.tables, ...newTables] };
@@ -279,6 +314,7 @@ export function reducer(state: AppState, action: Action): AppState {
 
     case 'EDIT_TABLE': {
       const seatCount = Math.max(1, Math.min(20, action.seatCount));
+      const dims = clampDims(action.dims);
       let removedGuestIds: string[] = [];
       const tables = state.tables.map(t => {
         if (t.id !== action.tableId) return t;
@@ -290,7 +326,7 @@ export function reducer(state: AppState, action: Action): AppState {
         } else if (seatCount > seats.length) {
           seats = [...seats, ...Array(seatCount - seats.length).fill(null)];
         }
-        return { ...t, label: action.label, shape: action.shape, seats };
+        return { ...t, label: action.label, shape: action.shape, seats, ...dims };
       });
       const guests = removedGuestIds.length
         ? state.guests.map(g =>
